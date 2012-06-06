@@ -118,11 +118,7 @@ function makeListsInfo($callBack, $userId) {
             $listArray[$i] = $row;
             $i++;
         }
-        $jsonMessage = array(
-            "response" => 1,
-            "listsInfo" => $listArray
-        );
-        makeJSONResponse($callBack, $jsonMessage);
+        makeJSONResponse($callBack, $listArray);
     } else {
         makeJSONResponse($callBack, null, $TODO_API_ERROR_CODES["NO_USERID"]);
     }

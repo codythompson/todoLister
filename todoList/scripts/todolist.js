@@ -16,6 +16,11 @@ var TODOLIST = function() {
         this.listsInfo = jsonObj;
     }
 
+    this.setUserMode = function (newMode) {
+        //TODO:
+        console.log("DEV ERROR: setUserMode not implemented");
+    }
+
     this.createListNameElement = function(listNameObj) {
         var listDiv = document.createElement("div");
 
@@ -32,27 +37,43 @@ var TODOLIST = function() {
     this.displayListsInfo = function() {
 	var parentContainer = document.getElementById(this.listsInfoDivId);
 	
-	if (this.listsInfo.response === 0) {
-            var failChild = document.createElement("div");
-	    failChild.className = this.failure_listsInfoChildDivClass;
-	    var failChildText = document.createTextNode(this.listsInfo.message);
-	    failChild.appendChild(failChildText);
-	    parentContainer.appendChild(failChild);
-	} else {
-            var listsNamesArray = this.listsInfo.listsInfo;
-            for (var i = 0; i < listsNamesArray.length; i++) {
-                var child = document
-                var listNameDiv =
-                    this.createListNameElement(listsNamesArray[i]);
-                parentContainer.appendChild(listNameDiv);
+        var listsNamesArray = this.listsInfo.data;
+        for (var i = 0; i < listsNamesArray.length; i++) {
+            var child = document
+            var listNameDiv =
+                this.createListNameElement(listsNamesArray[i]);
+            parentContainer.appendChild(listNameDiv);
+        }
+    }
+
+    this.displayList = function() {
+    }
+
+    this.displayError = function() {
+	var parentContainer = document.getElementById(this.listsInfoDivId);
+	
+        var failChild = document.createElement("div");
+        failChild.className = this.failure_listsInfoChildDivClass;
+        //TODO display better error message
+	var failChildText = document.createTextNode(this.listsInfo.message);
+	failChild.appendChild(failChildText);
+	parentContainer.appendChild(failChild);
+    }
+
+    this.display = function() {
+        if (this.listsInfo.response === 1) {
+            if (this.mode == true) {
+                this.displayListsInfo();
+            } else {
+                //TODO
             }
-	}
+        } else {
+            this.displayError();
+        }
     }
 
     this.onReady = function() {
-        this.displayListsInfo();
-
-        console.log("mmk: " + (this.mode == true));
+        this.display();
     }
 }
 
