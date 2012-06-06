@@ -1,16 +1,27 @@
 <?php
+/*
+ * api.php
+ * TODO: 
+ * makeJSONResponse - no literal as default arg. val
+ */
+
 header("Content-Type: text/javascript", true);
 
-/*
- * -----------------------------------------------------------------------------
- * VARS
+require_once("errorcodes.php");
+
+/* -----------------------------------------------------------------------------
+ * DB CONN
  */
-/*
+require("woopsydaisy.php");
+mysql_connect($DB_URL, $DB_UNAME, $DB_PWORD);
+mysql_select_db($DB_NAME);
+unset($DB_URL, $DB_UNAME, $DB_PWORD, $DB_NAME);
+
+/* -----------------------------------------------------------------------------
  * actions
  */
 $getList = "getList";
 $getListsInfo = "getListsInfo";
-
 /*
  * var names
  */
@@ -18,120 +29,9 @@ $actionVName = "action";
 $callBackVName = "callBack";
 $listIdVName = "listId";
 
-/*
- * error messages
+/* -----------------------------------------------------------------------------
+ * Utility Functions
  */
-$genericErrorMessage = "An API error has occured.";
-$notAuthorizedMessage = "You are not authorized to use this page.";
-
-//missing variable messages
-$noActionMessage = "An action name must be specified.";
-$noCallBackMessage = "A call back function name must be specified.";
-$noUserIdMessage = "A user ID must be supplied for this operation.";
-$noListIdMessage = "A list ID must be supplied for this operation.";
-$noListsMatchMessage = "No TODO Lists match your query.";
-
-/*
- * -----------------------------------------------------------------------------
- * SCRIPT
- */
-
-require("woopsydaisy.php");
-mysql_connect($DB_URL, $DB_UNAME, $DB_PWORD);
-mysql_select_db($DB_NAME);
-unset($DB_URL, $DB_UNAME, $DB_PWORD, $DB_NAME);
-
-$userId = getUserId();
-$loggedIn = $userId > 0 && gettype($userId) == "integer";
-$hasAction = isset($_GET[$actionVName]);
-$hasCallBack = isset($_GET[$callBackVName]);
-
-if ($loggedIn && $hasAction && $hasCallBack) {
-
-$action = $_GET[$actionVName];
-$callBack = $_GET[$callBackVName];
-
-if ($action == $getList) {
-    $listId = $_GET[$listIdVName];
-    makeListInfo($callBack, $userId, $listId);
-} else if ($action == $getListsInfo) {
-    makeListsInfo($callBack, $userId);
-}
-
-} else {
-    if (!$hasCallBack) {
-        echo 0;
-    } else if (!$loggedIn) {
-        makeError($_GET[$callBackVName], $notAuthorizedMessage);
-    } else if (!$hasAction) {
-        makeError($_GET[$callBackVName], $noActionMessage);
-    } else {
-        makeError($_GET[$callBackVName], $genericErrorMessage);
-    }
-}
-
-/*
- * -----------------------------------------------------------------------------
- * FUNCTIONS
- */
-function makeJSONResponse($callBackName, $dataArray/*, $mode*/) {
-    echo $callBackName."(".json_encode($dataArray).");";
-}
-
-function makeError($callBackName, $message/*, $mode*/) {
-    $jsonMessage = array(
-        "response" => 0,
-        "message" => $message
-    );
-    makeJSONResponse($callBackName, $jsonMessage, $mode);
-}
-
-function makeListInfo($callBack, $userId, $listId) {
-    global $noListIdMessage;
-    global $noUserIdIdMessage;
-    global $noListsMatchMessage;
-
-    if ($userId > 0) {
-        if ($listId) {
-            $query =
-                "SELECT * FROM lists WHERE PK_ID=$listId AND userid=$userId";
-            $jsonMessage = mysql_fetch_assoc(mysql_query($query));
-            if (!$jsonMessage) {
-                makeError($callBack, $noListsMatchMessage);
-            } else {
-                makeJSONResponse($callBack, $jsonMessage);
-            }
-        }
-        else {
-            makeError($callBack, $noListIdMessage);
-        }
-    } else {
-        makeError($callBack, $noUserIdMessage);
-    }
-}
-
-function makeListsInfo($callBack, $userId) {
-    global $noUserIdMessage;
-
-    if ($userId) {
-        $query = "SELECT * FROM lists WHERE userid = $userId";
-        $result = mysql_query($query);
-        $listArray = array();
-        $i = 0;
-        while ($row = mysql_fetch_assoc($result)) {
-            $listArray[$i] = $row;
-            $i++;
-        }
-        $jsonMessage = array(
-            "response" => 1,
-            "listsInfo" => $listArray
-        );
-        makeJSONResponse($callBack, $jsonMessage);
-    } else {
-        makeError($callBack, $noUserIdMessage);
-    }
-}
-
 
 function getUserId() {
     session_start();
@@ -145,6 +45,8 @@ function getUserId() {
     }
 }
 
+$userId = getUserId();
+
 function getUserMode() {
     global $userId;
 
@@ -157,4 +59,85 @@ function getUserMode() {
         return 0;
     }
 }
+
+$mode = getUserMode();
+
+function makeJSONResponse($callBackName, $dataArray,
+        $errorCode=1) { //should find way to not use literal here
+
+    global $mode;
+    global $TODO_API_ERRORS;
+
+    $responseArray = array(
+        "response" => $errorCode,
+        "message" => $TODO_API_ERRORS[$errorCode],
+        "mode" => $mode,
+        "data" => $dataArray);
+
+    echo $callBackName."(".json_encode($responseArray).");";
+}
+
+/* -----------------------------------------------------------------------------
+ * API functions
+ */
+
+function makeListInfo($callBack, $userId, $listId) {
+    global $TODO_API_ERROR_CODES;
+
+    if ($userId > 0) {
+        if ($listId > 0) {
+            $query =
+                "SELECT * FROM lists WHERE PK_ID=$listId AND userid=$userId";
+            $jsonMessage = mysql_fetch_assoc(mysql_query($query));
+
+            if (!$jsonMessage) {
+                makeJSONResponse($callBack, null,
+                    $TODO_API_ERROR_CODES["NO_LISTS_MATCH"]);
+            } else {
+                makeJSONResponse($callBack, $jsonMessage);
+            }
+
+        } else {
+            makeJSONResponse($callBack, null,
+                $TODO_API_ERROR_CODES["NO_LISTID"]);
+        }
+    } else {
+        makeJSONResponse($callBack, null, $TODO_API_ERROR_CODES["NO_USERID"]);
+    }
+}
+
+/* -----------------------------------------------------------------------------
+ * Script
+ */
+$loggedIn = $userId > 0 && gettype($userId) == "integer";
+$hasAction = isset($_GET[$actionVName]);
+$hasCallBack = isset($_GET[$callBackVName]);
+
+if ($loggedIn && $hasAction && $hasCallBack) {
+
+    $action = $_GET[$actionVName];
+    $callBack = $_GET[$callBackVName];
+
+    if ($action == $getList) {
+        $listId = $_GET[$listIdVName];
+        makeListInfo($callBack, $userId, $listId);
+    } else if ($action == $getListsInfo) {
+        makeListsInfo($callBack, $userId);
+    }
+
+} else {
+    if (!$hasCallBack) {
+        echo 0
+    } else if (!$loggedIn) {
+        makeJSONResponse($_GET[$callBackVName], null,
+            $TODO_API_ERROR_CODES["NOT_AUTH"]);
+    } else if (!$hasAction) {
+        makeJSONResponse($_GET[$callBackVName], null,
+            $TODO_API_ERROR_CODES["NO_ACTION"]);
+    } else {
+        makeJSONResponse($_GET[$callBackVName], null,
+            $TODO_API_ERROR_CODES["SERVER_SCRIPT_ERROR"]);
+    }
+}
+
 ?>
