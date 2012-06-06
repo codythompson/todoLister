@@ -106,6 +106,28 @@ function makeListInfo($callBack, $userId, $listId) {
     }
 }
 
+function makeListsInfo($callBack, $userId) {
+    global $TODO_API_ERROR_CODES;
+
+    if ($userId) {
+        $query = "SELECT * FROM lists WHERE userid = $userId";
+        $result = mysql_query($query);
+        $listArray = array();
+        $i = 0;
+        while ($row = mysql_fetch_assoc($result)) {
+            $listArray[$i] = $row;
+            $i++;
+        }
+        $jsonMessage = array(
+            "response" => 1,
+            "listsInfo" => $listArray
+        );
+        makeJSONResponse($callBack, $jsonMessage);
+    } else {
+        makeJSONResponse($callBack, null, $TODO_API_ERROR_CODES["NO_USERID"]);
+    }
+}
+
 /* -----------------------------------------------------------------------------
  * Script
  */
@@ -127,7 +149,7 @@ if ($loggedIn && $hasAction && $hasCallBack) {
 
 } else {
     if (!$hasCallBack) {
-        echo 0
+        echo 0;
     } else if (!$loggedIn) {
         makeJSONResponse($_GET[$callBackVName], null,
             $TODO_API_ERROR_CODES["NOT_AUTH"]);
