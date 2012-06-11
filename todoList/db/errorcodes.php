@@ -19,7 +19,9 @@ $TODO_API_ERROR_CODES = array(
 //8 => unable to retrieve user mode
     "UNABLE_TO_RET_USERMODE" => 8,
 //9 => Server Script Error
-    "SERVER_SCRIPT_ERROR" => 9
+    "SERVER_SCRIPT_ERROR" => 9,
+//10 => unsupported api action
+    "UNSUPPORTED_ACTION" => 10
     );
 
 $TODO_API_ERRORS = array(
@@ -31,5 +33,7 @@ $TODO_API_ERRORS = array(
     "A user ID must be supplied for this operation.", //5
     "A list ID must be supplied for this operation.", //6
     "No TODO Lists match your query.", //7
-    "Unable to retrieve user mode."); //8
+    "Unable to retrieve user mode.", //8
+    "A server script error has occured.", //9
+    "The specified api action is not supported"); //10
 ?>

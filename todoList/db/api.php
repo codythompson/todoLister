@@ -22,6 +22,7 @@ unset($DB_URL, $DB_UNAME, $DB_PWORD, $DB_NAME);
  */
 $getList = "getList";
 $getListsInfo = "getListsInfo";
+$getListItems = "getListItems";
 /*
  * var names
  */
@@ -54,9 +55,14 @@ function getUserMode() {
     if (isset($_SESSION["uname"])) {
         $query = "SELECT mode FROM users WHERE userid = $userId";
         $row = mysql_fetch_assoc(mysql_query($query));
-        return $row["mode"];
+        $strMode = $row["mode"];
+        if ($strMode == "true") {
+            return true;
+        } else {
+            return $strMode;
+        }
     } else {
-        return 0;
+        return false;
     }
 }
 
@@ -109,7 +115,7 @@ function makeListInfo($callBack, $userId, $listId) {
 function makeListsInfo($callBack, $userId) {
     global $TODO_API_ERROR_CODES;
 
-    if ($userId) {
+    if ($userId > 0) {
         $query = "SELECT * FROM lists WHERE userid = $userId";
         $result = mysql_query($query);
         $listArray = array();
@@ -119,6 +125,30 @@ function makeListsInfo($callBack, $userId) {
             $i++;
         }
         makeJSONResponse($callBack, $listArray);
+    } else {
+        makeJSONResponse($callBack, null, $TODO_API_ERROR_CODES["NO_USERID"]);
+    }
+}
+
+function makeListItems($callBack, $userId, $listId) {
+    global $TODO_API_ERROR_CODES;
+
+    if ($userId > 0) {
+        if ($listId > 0) {
+            $query =
+                "SELECT * FROM items WHERE userid=$userId AND listId=$listId";
+            $result = mysql_query($query);
+            $listArray = array();
+            $i = 0;
+            while ($row = mysql_fetch_assoc($result)) {
+                $listArray[$i] = $row;
+                $i++;
+            }
+            makeJSONResponse($callBack, $listArray);
+        } else {
+            makeJSONResponse($callBack, null,
+                $TODO_API_ERROR_CODES["NO_LISTID"]);
+        }
     } else {
         makeJSONResponse($callBack, null, $TODO_API_ERROR_CODES["NO_USERID"]);
     }
@@ -141,6 +171,12 @@ if ($loggedIn && $hasAction && $hasCallBack) {
         makeListInfo($callBack, $userId, $listId);
     } else if ($action == $getListsInfo) {
         makeListsInfo($callBack, $userId);
+    } else if ($action == $getListItems) {
+        $listId = $_GET[$listIdVName];
+        makeListItems($callBack, $listId, $userId);
+    } else {
+        makeJSONResponse($_GET[$callBackVName], null,
+            $TODO_API_ERROR_CODES["UNSUPPORTED_ACTION"]);
     }
 
 } else {

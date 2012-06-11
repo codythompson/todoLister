@@ -1,87 +1,113 @@
-var TODO_listsInfoDivId = "lists-container";
-var TODO_listsInfoChildDivClass = "lists-container-listInfo";
-var TODO_failure_listsInfoChildDivClass = "lists-container-listInfo-failure";
-var TODO_listNameSpanClass = "lists-container-listName";
+var TODOLIST_listInfo = function(listInfo) {
+    this.listInfo = listInfo;
 
-var TODOLIST = function() {
-    this.mode = true;
-
-    this.listsInfo;
-
-    this.listsInfoDivId = TODO_listsInfoDivId;
-    this.listsInfoChildDivClass = TODO_listsInfoChildDivClass;
-    this.failure_listsInfoChildDivClass = TODO_failure_listsInfoChildDivClass;
-
-    this.setListsInfo = function(jsonObj) {
-        this.listsInfo = jsonObj;
+    this.setListInfo = function (jsonObj) {
+        this.listInfo = jsonObj;
     }
 
-    this.setUserMode = function (newMode) {
-        //TODO:
-        console.log("DEV ERROR: setUserMode not implemented");
+    this.errorOccurred = function() {
+        return (this.listInfo.response !== 1);
     }
 
-    this.createListNameElement = function(listNameObj) {
-        var listDiv = document.createElement("div");
-
-        var listNameSpan = document.createElement("span");
-        listNameSpan.className = TODO_listNameSpanClass;
-
-        var listNameText = document.createTextNode(listNameObj.name);
-
-        listNameSpan.appendChild(listNameText);
-        listDiv.appendChild(listNameSpan);
-        return listDiv;
+    this.getResponseCode = function() {
+        return this.listInfo.response;
     }
 
-    this.displayListsInfo = function() {
-	var parentContainer = document.getElementById(this.listsInfoDivId);
-	
-        var listsNamesArray = this.listsInfo.data;
-        for (var i = 0; i < listsNamesArray.length; i++) {
-            var child = document
-            var listNameDiv =
-                this.createListNameElement(listsNamesArray[i]);
-            parentContainer.appendChild(listNameDiv);
+    this.getResponseMessage = function() {
+        return this.listInfo.message;
+    }
+
+    this.getMode = function () {
+        return this.listInfo.mode;
+    }
+
+    this.modeIsListsOfLists = function () {
+        return (this.listInfo.mode === true);
+    }
+
+    this.modeIsList = function () {
+        return (typeof this.listInfo.mode === "string" && 
+                this.listInfo.mode !== "")
+    }
+
+    this.getListData = function () {
+        return this.listInfo.data;
+    }
+}
+
+var TODOLIST_DEF_HtmlListItemBuilder = function (listItemClassNames) {
+    this.listItemClassNames = listItemClassNames;
+
+    this.isSpan = true;
+
+    this.getItem = function(index, text) {
+        var eleType = "div";
+        if (this.isSpan) {
+            eleType = "span";
+        }
+        var itemCont = document.createElement("div");
+        var classNameIndex = index % this.listItemClassNames.length;
+        itemCont.className = this.listItemClassNames[classNameIndex];
+
+        var item = document.createElement("button");
+        var itemText = document.createTextNode(text);
+
+        item.appendChild(itemText);
+        itemCont.appendChild(item);
+
+        return itemCont;
+    }
+}
+
+var TODOLIST_DEF_HtmlListsOfListsBuilder = function (nameContainerId
+        /*, iconContainerId*/, listItemBuilder) {
+
+    this.nameContainerId = nameContainerId;
+    //this.iconContainerId = iconContainerId;
+    
+    this.listItemBuilder = listItemBuilder;
+
+    this.buildList = function (listData) {
+        var nameCont = document.getElementById(this.nameContainerId);
+        //var iconCont = document.getElementById(this.iconContainerId);
+
+        for (var i = 0; i < listData.length; i++) {
+            var listEle = this.listItemBuilder.getItem(i, listData[i].name);
+            nameCont.appendChild(listEle);
+        }
+    }
+}
+
+var TODOLIST_onReadyFuncs = [];
+var TODOLIST_onReady = function() {
+    for (var i = 0; i < TODOLIST_onReadyFuncs.length; i++) {
+        TODOLIST_onReadyFuncs[i].onReady();
+    }
+}
+$(document).ready(TODOLIST_onReady);
+
+var TODOLIST_manager = function (jsonObj, listsOfListsBuilder/*, listBuilder*/) {
+    this.listInfo = new TODOLIST_listInfo(jsonObj);
+
+    this.listsOfBuilder = listsOfListsBuilder;
+    //this.listBuilder = listBuilder;
+
+    this.buildHtml = function() {
+        if (this.listInfo.errorOccurred()) {
+            this.buildErrorHtml();
+        } else if (this.listInfo.modeIsListsOfLists()) {
+            var listData = this.listInfo.getListData();
+            this.listsOfBuilder.buildList(listData);
         }
     }
 
-    this.displayList = function() {
-    }
-
-    this.displayError = function() {
-	var parentContainer = document.getElementById(this.listsInfoDivId);
-	
-        var failChild = document.createElement("div");
-        failChild.className = this.failure_listsInfoChildDivClass;
-        //TODO display better error message
-	var failChildText = document.createTextNode(this.listsInfo.message);
-	failChild.appendChild(failChildText);
-	parentContainer.appendChild(failChild);
-    }
-
-    this.display = function() {
-        if (this.listsInfo.response === 1) {
-            if (this.mode == true) {
-                this.displayListsInfo();
-            } else {
-                //TODO
-            }
-        } else {
-            this.displayError();
-        }
+    this.buildErrorHtml = function() {
+        console.log("buildErrorHtml no implemented yet");
     }
 
     this.onReady = function() {
-        this.display();
+        this.buildHtml();
     }
+
+    TODOLIST_onReadyFuncs.push(this);
 }
-
-var TODO_obj = new TODOLIST();
-
-var TODO_onReady = function() {
-	TODO_obj.onReady();
-}
-
-//
-$(document).ready(TODO_onReady);

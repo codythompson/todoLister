@@ -13,7 +13,8 @@ $uname = $_SESSION["uname"];
 <script src="libs/jquery-1.7.2.min.js" type="text/javascript"></script>
 
 <script src="scripts/todolist.js" type="text/javascript"></script>
-<script src="db/api.php?action=getListsInfo&callBack=TODO_obj.setListsInfo"
+<script src="scripts/todolistdefault.js" type="text/javascript"></script>
+<script src="db/api.php?action=getListsInfo&callBack=receiveInfo"
         type="text/javascript">
 </script>
 </head>
