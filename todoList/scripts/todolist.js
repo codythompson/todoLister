@@ -1,3 +1,5 @@
+var TODOLIST_MODE_listOfLists = 0;
+
 var TODOLIST_listInfo = function(listInfo) {
     this.listInfo = listInfo;
 
@@ -22,12 +24,11 @@ var TODOLIST_listInfo = function(listInfo) {
     }
 
     this.modeIsListsOfLists = function () {
-        return (this.listInfo.mode === true);
+        return (this.listInfo.mode === TODOLIST_MODE_listOfLists);
     }
 
     this.modeIsList = function () {
-        return (typeof this.listInfo.mode === "string" && 
-                this.listInfo.mode !== "")
+        return (this.listInfo.mode > 0);
     }
 
     this.getListData = function () {
@@ -40,7 +41,7 @@ var TODOLIST_DEF_HtmlListItemBuilder = function (listItemClassNames) {
 
     this.isSpan = true;
 
-    this.getItem = function(index, text) {
+    this.getItem = function(index, text, onMouseUp) {
         var eleType = "div";
         if (this.isSpan) {
             eleType = "span";
@@ -50,6 +51,7 @@ var TODOLIST_DEF_HtmlListItemBuilder = function (listItemClassNames) {
         itemCont.className = this.listItemClassNames[classNameIndex];
 
         var item = document.createElement("button");
+        item.setAttribute("onmouseup", onMouseUp);
         var itemText = document.createTextNode(text);
 
         item.appendChild(itemText);
@@ -60,7 +62,7 @@ var TODOLIST_DEF_HtmlListItemBuilder = function (listItemClassNames) {
 }
 
 var TODOLIST_DEF_HtmlListsOfListsBuilder = function (nameContainerId
-        /*, iconContainerId*/, listItemBuilder) {
+        /*, iconContainerId*/, listItemBuilder, onMouseUpHandlerName) {
 
     this.nameContainerId = nameContainerId;
     //this.iconContainerId = iconContainerId;
@@ -72,7 +74,32 @@ var TODOLIST_DEF_HtmlListsOfListsBuilder = function (nameContainerId
         //var iconCont = document.getElementById(this.iconContainerId);
 
         for (var i = 0; i < listData.length; i++) {
-            var listEle = this.listItemBuilder.getItem(i, listData[i].name);
+            var onMouseUpHandler =
+                onMouseUpHandlerName + "(" + listData[i].PK_ID + ")";
+            var listEle = this.listItemBuilder.getItem(i, listData[i].name,
+                    onMouseUpHandler);
+            nameCont.appendChild(listEle);
+        }
+    }
+}
+
+var TODOLIST_DEF_HtmlListBuilder = function (nameContainerId
+        /*, iconContainerId*/, listItemBuilder, onMouseUpHandlerName) {
+
+    this.nameContainerId = nameContainerId;
+    //this.iconContainerId = iconContainerId;
+    
+    this.listItemBuilder = listItemBuilder;
+
+    this.buildList = function (listData) {
+        var nameCont = document.getElementById(this.nameContainerId);
+        //var iconCont = document.getElementById(this.iconContainerId);
+
+        for (var i = 0; i < listData.length; i++) {
+            var onMouseUpHandler =
+                onMouseUpHandlerName + "(" + TODOLIST_MODE_listOfLists + ")";
+            var listEle = this.listItemBuilder.getItem(i, listData[i].name,
+                    onMouseUpHandler);
             nameCont.appendChild(listEle);
         }
     }
@@ -86,27 +113,39 @@ var TODOLIST_onReady = function() {
 }
 $(document).ready(TODOLIST_onReady);
 
-var TODOLIST_manager = function (jsonObj, listsOfListsBuilder/*, listBuilder*/) {
+var TODOLIST_manager = function (jsonObj, listsOfListsBuilder, listBuilder) {
     this.listInfo = new TODOLIST_listInfo(jsonObj);
 
     this.listsOfBuilder = listsOfListsBuilder;
-    //this.listBuilder = listBuilder;
+    this.listBuilder = listBuilder;
 
     this.buildHtml = function() {
         if (this.listInfo.errorOccurred()) {
             this.buildErrorHtml();
-        } else if (this.listInfo.modeIsListsOfLists()) {
+        } else {
             var listData = this.listInfo.getListData();
-            this.listsOfBuilder.buildList(listData);
+            var builder;
+
+            if (this.listInfo.modeIsListsOfLists()) {
+                builder = this.listsOfBuilder;
+            } else {
+                builder = this.listBuilder;
+            }
+
+            builder.buildList(listData);
         }
     }
 
     this.buildErrorHtml = function() {
-        console.log("buildErrorHtml no implemented yet");
+        console.log("buildErrorHtml not implemented yet");
     }
 
     this.onReady = function() {
         this.buildHtml();
+    }
+
+    this.changeMode = function(newMode) {
+        console.log("not implemented, newMode=" + newMode);
     }
 
     TODOLIST_onReadyFuncs.push(this);

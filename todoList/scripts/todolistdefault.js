@@ -5,8 +5,13 @@ var listItemBldr = new TODOLIST_DEF_HtmlListItemBuilder(listItemCNames);
 var nameContId = "lists-container";
 
 var listsOfBldr = new TODOLIST_DEF_HtmlListsOfListsBuilder(nameContId,
-        listItemBldr);
+        listItemBldr, "listManager.changeMode");
+
+var listBuilder = new TODOLIST_DEF_HtmlListBuilder(nameContId,
+        listItemBldr, "listManager.changeMode");
+
+var listManager;
 
 var receiveInfo = function (jsonObj) {
-    new TODOLIST_manager(jsonObj, listsOfBldr);
+    listManager = new TODOLIST_manager(jsonObj, listsOfBldr, listBuilder);
 }
